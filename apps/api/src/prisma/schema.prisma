@@ -66,7 +66,7 @@ model User {
   id           String   @id @default(uuid())
   tenantId     String?  @map("tenant_id") // Nullable untuk Super Admin StackPlus
   email        String   @unique
-  passwordHash String   @map("password_hash")
+  password     String
   role         Role     @default(EMPLOYEE)
   status       Boolean  @default(true)
   

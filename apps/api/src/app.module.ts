@@ -8,9 +8,10 @@ import { TenantsModule } from './tenants/tenants.module';
 import { EmployeesModule } from './employees/employees.module';
 import { AttendancesModule } from './attendances/attendances.module';
 import { LeavesModule } from './leaves/leaves.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule, UsersModule, TenantsModule, EmployeesModule, AttendancesModule, LeavesModule],
+  imports: [AuthModule, PrismaModule, UsersModule, TenantsModule, EmployeesModule, AttendancesModule, LeavesModule, DashboardModule],
   controllers: [AppController],
   providers: [AppService],
 })

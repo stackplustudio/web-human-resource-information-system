@@ -1,6 +1,5 @@
 import { IsString, IsNotEmpty, IsDateString, IsOptional, IsEnum } from 'class-validator';
 
-// Samakan dengan enum LeaveStatus di schema.prisma
 enum LeaveStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
@@ -18,7 +17,7 @@ export class CreateLeaveDto {
 
   @IsString()
   @IsNotEmpty()
-  leaveType: string; // Contoh: "Cuti Tahunan", "Sakit", "Melahirkan"
+  leaveType: string;
 
   @IsDateString()
   @IsNotEmpty()
@@ -30,7 +29,7 @@ export class CreateLeaveDto {
 
   @IsEnum(LeaveStatus)
   @IsOptional()
-  status?: LeaveStatus; // Otomatis PENDING dari database jika tidak dikirim
+  status?: LeaveStatus;
 
   @IsString()
   @IsOptional()

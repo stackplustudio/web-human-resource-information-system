@@ -11,15 +11,40 @@ export class AuthService {
   ) {}
 
   // 1. Validasi kredensial (Email & Password)
+  // async validateUser(email: string, pass: string): Promise<any> {
+  //   const user = await this.prisma.user.findUnique({
+  //     where: { email },
+  //   });
+
+  //   if (user && (await bcrypt.compare(pass, user.password))) {
+  //     const { password, ...result } = user;
+  //     return result;
+  //   }
+  //   return null;
+  // }
+
   async validateUser(email: string, pass: string): Promise<any> {
+    console.log('\n--- 🕵️‍♂️ DEBUG LOGIN DIMULAI ---');
+    console.log('1. Email dari Frontend   :', email);
+    console.log('2. Password dr Frontend  :', pass);
+
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
-    if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user;
-      return result;
+    console.log('3. Cek Database Neon     :', user ? '✅ AKUN KETEMU' : '❌ AKUN TIDAK ADA');
+
+    if (user) {
+      const isMatch = await bcrypt.compare(pass, user.password);
+      console.log('4. Hasil Cocok Password  :', isMatch ? '✅ COCOK' : '❌ GAGAL BCRYPT');
+
+      if (isMatch) {
+        const { password, ...result } = user;
+        return result;
+      }
     }
+    
+    console.log('--- ❌ LOGIN DITOLAK ---\n');
     return null;
   }
 
