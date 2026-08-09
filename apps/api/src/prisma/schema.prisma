@@ -1,0 +1,210 @@
+// apps/api/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Sesuaikan dengan .env kamu
+  url      = env("DATABASE_URL")
+}
+
+// ENUMS untuk standarisasi status dan role
+enum Role {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  HR_STAFF
+  MANAGER
+  EMPLOYEE
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  PROBATION
+  ON_LEAVE
+  RESIGNED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==========================================
+// CORE ENTITIES
+// ==========================================
+
+model Tenant {
+  id          String       @id @default(uuid())
+  name        String
+  subdomain   String       @unique
+  plan        String       @default("STARTER")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  
+  // Relasi
+  users           User[]
+  employees       Employee[]
+  departments     Department[]
+  attendances     Attendance[]
+  leaveRequests   LeaveRequest[]
+  leaveBalances   LeaveBalance[]
+  payrolls        Payroll[]
+  payrollComps    PayrollComponent[]
+  auditLogs       AuditLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String?  @map("tenant_id") // Nullable untuk Super Admin StackPlus
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(EMPLOYEE)
+  status       Boolean  @default(true)
+  
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee     Employee?
+
+  @@map("users")
+}
+
+model Employee {
+  id               String           @id @default(uuid())
+  tenantId         String           @map("tenant_id")
+  userId           String           @unique @map("user_id")
+  fullName         String           @map("full_name")
+  departmentId     String?          @map("department_id")
+  position         String
+  joinDate         DateTime         @map("join_date")
+  employmentStatus EmploymentStatus @default(ACTIVE) @map("employment_status")
+  managerId        String?          @map("manager_id")
+
+  // Relasi
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  manager      Employee?    @relation("EmployeeToManager", fields: [managerId], references: [id])
+  subordinates Employee[]   @relation("EmployeeToManager")
+  
+  attendances   Attendance[]
+  leaveRequests LeaveRequest[]
+  leaveBalances LeaveBalance[]
+  payrolls      Payroll[]
+
+  @@map("employees")
+}
+
+model Department {
+  id                 String   @id @default(uuid())
+  tenantId           String   @map("tenant_id")
+  name               String
+  parentDepartmentId String?  @map("parent_department_id")
+
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parentDepartment   Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  childDepartments   Department[] @relation("DepartmentHierarchy")
+  employees          Employee[]
+
+  @@map("departments")
+}
+
+// ==========================================
+// HRIS MODULES
+// ==========================================
+
+model Attendance {
+  id          String           @id @default(uuid())
+  tenantId    String           @map("tenant_id")
+  employeeId  String           @map("employee_id")
+  date        DateTime         @db.Date
+  checkIn     DateTime?        @map("check_in")
+  checkOut    DateTime?        @map("check_out")
+  status      AttendanceStatus
+  location    String?
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("attendances")
+}
+
+model LeaveRequest {
+  id          String      @id @default(uuid())
+  tenantId    String      @map("tenant_id")
+  employeeId  String      @map("employee_id")
+  leaveType   String      @map("leave_type")
+  startDate   DateTime    @map("start_date") @db.Date
+  endDate     DateTime    @map("end_date") @db.Date
+  status      LeaveStatus @default(PENDING)
+  approvedBy  String?     @map("approved_by")
+  reason      String?
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("leave_requests")
+}
+
+model LeaveBalance {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  employeeId  String   @map("employee_id")
+  leaveType   String   @map("leave_type")
+  balance     Int
+  year        Int
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("leave_balances")
+}
+
+model Payroll {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  employeeId  String   @map("employee_id")
+  period      String   // Format: YYYY-MM
+  baseSalary  Float    @map("base_salary")
+  allowances  Float    @default(0)
+  deductions  Float    @default(0)
+  netSalary   Float    @map("net_salary")
+  status      String   @default("DRAFT")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("payrolls")
+}
+
+model PayrollComponent {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  type        String   // "ALLOWANCE" or "DEDUCTION"
+  amount      Float
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("payroll_components")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  actorId     String   @map("actor_id")
+  action      String
+  entity      String
+  timestamp   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}

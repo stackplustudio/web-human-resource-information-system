@@ -4,9 +4,13 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module'; // TAMBAHKAN INI
+import { TenantsModule } from './tenants/tenants.module';
+import { EmployeesModule } from './employees/employees.module';
+import { AttendancesModule } from './attendances/attendances.module';
+import { LeavesModule } from './leaves/leaves.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule, UsersModule],
+  imports: [AuthModule, PrismaModule, UsersModule, TenantsModule, EmployeesModule, AttendancesModule, LeavesModule],
   controllers: [AppController],
   providers: [AppService],
 })
