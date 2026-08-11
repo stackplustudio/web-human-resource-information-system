@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// NAMA FUNGSI WAJIB DIGANTI MENJADI 'proxy'
+// Sesuai dengan konfigurasi Turbopack milikmu
 export function proxy(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
+  const { pathname } = request.nextUrl;
 
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !token) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // LOGIKA BARU: Jika ada yang mengakses root (/) atau nyasar ke rute lama (/dashboard)
+  // Langsung arahkan mereka ke pintu gerbang utama kita yaitu /login
+  if (pathname === '/' || pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (request.nextUrl.pathname === '/' && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
+  // Biarkan halaman lain (seperti /admin, /employee, /login) lewat dengan aman
   return NextResponse.next();
 }
 
 export const config = {
+  // Satpam ini berjaga di root dan seluruh rute dashboard lama
   matcher: ['/', '/dashboard/:path*'],
 };

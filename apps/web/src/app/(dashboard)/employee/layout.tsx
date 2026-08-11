@@ -3,15 +3,26 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { session, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !session) {
+      router.replace('/login');
+    }
+  }, [session, loading, router]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     router.push('/login');
   };
+
+  if (loading) return null;
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-[#E8F0FE] via-[#F5F1E8] to-[#D0E2FF] font-sans overflow-hidden">
@@ -68,6 +79,17 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               Slip Gaji
             </Link>
+
+            <Link 
+              href="/employee/performance" 
+              className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${
+                pathname.includes('/employee/performance') ? 'bg-[#0052FF]/90 text-white shadow-lg shadow-blue-500/30 backdrop-blur-md' : 'text-gray-700 hover:bg-white/50 hover:text-[#0052FF]'
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+              Target Kinerja
+            </Link>
+            
           </nav>
         </div>
 

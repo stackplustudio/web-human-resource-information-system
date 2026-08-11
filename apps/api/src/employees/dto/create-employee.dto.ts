@@ -1,7 +1,7 @@
-import { IsString, IsNotEmpty, IsDateString, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsOptional, IsEnum, IsEmail } from 'class-validator';
 
 // Menggunakan enum yang sama dengan schema Prisma
-enum EmploymentStatus {
+export enum EmploymentStatus {
   ACTIVE = 'ACTIVE',
   PROBATION = 'PROBATION',
   ON_LEAVE = 'ON_LEAVE',
@@ -13,29 +13,35 @@ export class CreateEmployeeDto {
   @IsNotEmpty()
   tenantId: string;
 
+  // 👈 TAMBAHAN BARU: Menerima input email dari form HRD
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  // 👈 TAMBAHAN BARU: Menerima input password sementara
   @IsString()
   @IsNotEmpty()
-  userId: string; // Relasi ke akun login
+  password: string;
 
   @IsString()
   @IsNotEmpty()
   fullName: string;
 
   @IsString()
-  @IsOptional()
-  departmentId?: string;
-
-  @IsString()
   @IsNotEmpty()
   position: string;
 
   @IsDateString()
-  @IsNotEmpty()
-  joinDate: string;
+  @IsOptional()
+  joinDate?: string; // Dibuat opsional karena service punya fallback (tanggal hari ini)
 
   @IsEnum(EmploymentStatus)
   @IsOptional()
   employmentStatus?: EmploymentStatus;
+
+  @IsString()
+  @IsOptional()
+  departmentId?: string;
 
   @IsString()
   @IsOptional()

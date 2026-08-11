@@ -1,19 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { Role } from '@prisma/client';
+import * as bcrypt from 'bcrypt'; // 👈 IMPORT BCRYPT DI SINI
 
 @Injectable()
 export class EmployeesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createEmployeeDto: CreateEmployeeDto) {
-    return this.prisma.employee.create({
-      data: {
-        ...createEmployeeDto,
-        joinDate: new Date(createEmployeeDto.joinDate), // Konversi string ke Date Object
-      },
-    });
+    try {
+      // Enkripsi password menggunakan bcrypt dengan saltRounds = 10
+      const hashedPassword = await bcrypt.hash(createEmployeeDto.password, 10);
+
+      // Gunakan Transaction agar aman: Gagal satu = batal semua
+      return await this.prisma.$transaction(async (tx) => {
+        
+        // Langkah 1: Buat Akun Log-in (User) dengan password ter-hash
+        const newUser = await tx.user.create({
+          data: {
+            email: createEmployeeDto.email,
+            password: hashedPassword, // 👈 Tersimpan dalam bentuk hash yang aman!
+            role: Role.EMPLOYEE,
+          },
+        });
+
+        // Langkah 2: Buat Profil Karyawan (Employee) dengan memasukkan userId
+        return await tx.employee.create({
+          data: {
+            fullName: createEmployeeDto.fullName,
+            position: createEmployeeDto.position,
+            employmentStatus: createEmployeeDto.employmentStatus || 'ACTIVE',
+            tenantId: createEmployeeDto.tenantId,
+            departmentId: createEmployeeDto.departmentId,
+            managerId: createEmployeeDto.managerId,
+            joinDate: createEmployeeDto.joinDate ? new Date(createEmployeeDto.joinDate) : new Date(),
+            userId: newUser.id, // 👈 Sambungkan ID-nya di sini!
+          },
+        });
+      });
+    } catch (error: any) {
+      throw new InternalServerErrorException('Gagal membuat karyawan: ' + error.message);
+    }
   }
 
   // Mengambil semua karyawan berdasarkan tenant tertentu
@@ -22,7 +51,7 @@ export class EmployeesService {
       where: { tenantId },
       include: {
         department: true,
-        user: { select: { email: true, role: true } }, // Join ringan untuk ambil email
+        user: { select: { email: true, role: true } }, 
       },
     });
   }
@@ -35,7 +64,6 @@ export class EmployeesService {
   }
 
   async update(id: string, updateEmployeeDto: UpdateEmployeeDto) {
-    // Jika ada update joinDate, pastikan dikonversi
     const dataToUpdate: any = { ...updateEmployeeDto };
     if (updateEmployeeDto.joinDate) {
       dataToUpdate.joinDate = new Date(updateEmployeeDto.joinDate);
