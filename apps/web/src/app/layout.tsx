@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast"; // TAMBAHKAN IMPORT INI
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Stack Plus Studio",
+  title: "HRIS | Stacplustudio",
   description: "Core Engine V1.0",
 };
 

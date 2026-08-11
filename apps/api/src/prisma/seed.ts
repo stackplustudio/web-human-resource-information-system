@@ -1,36 +1,61 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Memulai proses seeding database...');
+  console.log('🌱 Memulai injeksi data Tenant dan Employee...');
 
-  // 1. Hash password agar aman dan dikenali oleh sistem Auth NestJS kamu
-  const passwordHash = await bcrypt.hash('stackplustudio6', 10);
-
-  // 2. Suntikkan akun Super Admin ke tabel User
-  const superAdmin = await prisma.user.upsert({
+  // 1. Cari akun Admin yang udah kita buat semalam
+  const adminUser = await prisma.user.findUnique({
     where: { email: 'stackplustudio@gmail.com' },
-    update: {
-      password: passwordHash, // 👈 TAMBAHKAN INI: Paksa update password!
-    },
-    create: {
-      email: 'stackplustudio@gmail.com',
-      password: passwordHash,
-      role: 'SUPER_ADMIN',
-      status: true,
-    },
   });
 
-  console.log('✅ Berhasil membuat akun Super Admin!');
-  console.log('📧 Email    :', superAdmin.email);
-  console.log('🔑 Password : stackplustudio6');
+  if (!adminUser) {
+    throw new Error('❌ Akun Admin tidak ditemukan! Pastikan emailnya benar.');
+  }
+
+  // 2. Buat data Perusahaan (Tenant)
+  let tenant = await prisma.tenant.findFirst({
+    where: { name: 'StackPlus Studio' },
+  });
+
+  if (!tenant) {
+    tenant = await prisma.tenant.create({
+      data: { 
+        name: 'StackPlus Studio',
+        subdomain: 'stackplus' // 👈 FIX 1: Tambahan kolom wajib
+      },
+    });
+  }
+
+  // 3. Buat data Karyawan yang dikaitkan dengan Perusahaan dan Akun Login
+  let employee = await prisma.employee.findFirst({
+    where: { userId: adminUser.id },
+  });
+
+  if (!employee) {
+    employee = await prisma.employee.create({
+      data: {
+        fullName: 'Budi Cahyono',
+        position: 'Full Stack Web Developer',
+        employmentStatus: 'ACTIVE',
+        joinDate: new Date(), // 👈 FIX 2: Tambahan kolom wajib
+        tenantId: tenant.id,
+        userId: adminUser.id,
+      },
+    });
+  }
+
+  console.log('\n✅ BERHASIL! INI DATA UNTUK FRONTEND KAMU:');
+  console.log('====================================================');
+  console.log(`const currentTenantId = '${tenant.id}';`);
+  console.log(`const currentEmployeeId = '${employee.id}';`);
+  console.log('====================================================\n');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Terjadi kesalahan saat seeding:', e);
+    console.error('❌ Terjadi kesalahan:', e);
     process.exit(1);
   })
   .finally(async () => {

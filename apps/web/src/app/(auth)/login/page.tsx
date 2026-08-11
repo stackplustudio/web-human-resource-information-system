@@ -11,29 +11,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-//   const handleLogin = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     setIsLoading(true);
-
-//     try {
-//       // Endpoint /auth/login sudah disediakan oleh Core Engine NestJS
-//       const response = await api.post('/auth/login', { email, password });
-      
-//       toast.success('Login berhasil! Selamat datang.');
-      
-//       // Routing cerdas berdasarkan Role
-//       const userRole = response.data.user.role;
-//       if (userRole === 'COMPANY_ADMIN' || userRole === 'SUPER_ADMIN') {
-//         router.push('/admin');
-//       } else {
-//         router.push('/employee');
-//       }
-//     } catch (error: any) {
-//       toast.error(error.response?.data?.message || 'Login gagal, periksa kredensial Anda');
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,9 +19,13 @@ export default function LoginPage() {
     try {
       const response = await api.post('/auth/login', { email, password });
       
-      // 👈 TAMBAHKAN INI: Simpan token ke Cookies agar axios & proxy.ts bisa membacanya
+      // 👈 PERBAIKAN: Gunakan localStorage agar lebih stabil di Next.js
       const token = response.data.access_token;
-      document.cookie = `token=${token}; path=/; max-age=86400;`; // Berlaku 1 hari
+      if (token) {
+        localStorage.setItem('token', token);
+      } else {
+        throw new Error('Token tidak ditemukan dari server');
+      }
       
       toast.success('Login berhasil! Selamat datang.');
       

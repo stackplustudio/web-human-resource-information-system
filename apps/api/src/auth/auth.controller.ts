@@ -1,10 +1,16 @@
-import { Controller, Post, Body, UnauthorizedException, Res } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, Res, Get, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import type { Response } from 'express';
+import { JwtAuthGuard } from './jwt-auth.guard'; 
+import { PrismaService } from '../prisma/prisma.service'; 
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  // Tambahkan PrismaService ke dalam constructor
+  constructor(
+    private authService: AuthService,
+    private prisma: PrismaService
+  ) {}
 
   @Post('login')
   async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
@@ -30,7 +36,34 @@ export class AuthController {
     return {
       message: 'Login berhasil',
       user: tokens.user,
-      access_token: tokens.access_token, // PERBAIKAN: mengirim format access_token
+      access_token: tokens.access_token,
+    };
+  }
+
+  // --- TAMBAHAN BARU: Pintu untuk hook useAuth di Frontend ---
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Request() req: any) {
+    // FIX: Gunakan fallback penamaan dari JWT Strategy bawaan NestJS
+    const targetId = req.user.userId || req.user.sub || req.user.id;
+
+    // Cari user beserta relasi Employee dan Tenant-nya
+    const user = await this.prisma.user.findUnique({
+      where: { id: targetId }, // 👈 Prisma tidak akan teriak undefined lagi
+      include: {
+        employee: {
+          include: { tenant: true }
+        }
+      }
+    });
+
+    // Kembalikan data yang rapi ke Frontend
+    return {
+      userId: user?.id,
+      email: user?.email,
+      role: user?.role,
+      employee: user?.employee ? { id: user.employee.id, fullName: user.employee.fullName } : null,
+      tenant: user?.employee?.tenant ? { id: user.employee.tenant.id, name: user.employee.tenant.name } : null,
     };
   }
 }
