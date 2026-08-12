@@ -2,8 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { Role } from '@prisma/client';
-import * as bcrypt from 'bcrypt'; // 👈 IMPORT BCRYPT DI SINI
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class EmployeesService {
@@ -14,15 +13,15 @@ export class EmployeesService {
       // Enkripsi password menggunakan bcrypt dengan saltRounds = 10
       const hashedPassword = await bcrypt.hash(createEmployeeDto.password, 10);
 
-      // Gunakan Transaction agar aman: Gagal satu = batal semua
-      return await this.prisma.$transaction(async (tx) => {
+      // Gunakan Transaction agar aman: Gagal satu = batal semua, tambah type 'any' pada tx
+      return await this.prisma.$transaction(async (tx: any) => {
         
         // Langkah 1: Buat Akun Log-in (User) dengan password ter-hash
         const newUser = await tx.user.create({
           data: {
             email: createEmployeeDto.email,
-            password: hashedPassword, // 👈 Tersimpan dalam bentuk hash yang aman!
-            role: Role.EMPLOYEE,
+            password: hashedPassword,
+            role: 'EMPLOYEE', // Fix Role error: langsung gunakan string literal
           },
         });
 
@@ -36,7 +35,7 @@ export class EmployeesService {
             departmentId: createEmployeeDto.departmentId,
             managerId: createEmployeeDto.managerId,
             joinDate: createEmployeeDto.joinDate ? new Date(createEmployeeDto.joinDate) : new Date(),
-            userId: newUser.id, // 👈 Sambungkan ID-nya di sini!
+            userId: newUser.id,
           },
         });
       });
@@ -45,7 +44,6 @@ export class EmployeesService {
     }
   }
 
-  // Mengambil semua karyawan berdasarkan tenant tertentu
   async findAllByTenant(tenantId: string) {
     return this.prisma.employee.findMany({
       where: { tenantId },
