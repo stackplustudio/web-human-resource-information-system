@@ -4,14 +4,19 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Wajib agar Next.js (port 3000) tidak diblokir saat nembak API
+  // Wajib agar Next.js di lokal (3000) DAN di Vercel tidak diblokir saat nembak API
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'https://web-human-resource-information-syst.vercel.app'
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true, 
   });
 
-  // Wajib jalan di port 3001 sesuai settingan axios frontend kamu
-  await app.listen(3001); 
-  console.log(`🚀 Application is running on: http://localhost:3001`);
+  // Wajib pakai process.env.PORT agar Railway bisa menembak port production secara dinamis
+  const port = process.env.PORT || 3001;
+  await app.listen(port); 
+  console.log(`🚀 Application is running on port: ${port}`);
 }
 bootstrap();

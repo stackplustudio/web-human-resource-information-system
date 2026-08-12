@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: 'http://localhost:3001',
+  // PENTING: Gunakan Environment Variable saat di Vercel, fallback ke localhost saat develop
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   headers: {
     'Content-Type': 'application/json',
   },
