@@ -4,18 +4,17 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
-  // Wajib agar Next.js di lokal (3000) DAN di Vercel tidak diblokir saat nembak API
+  // Daftarin semua domain yang boleh akses API lu di sini
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'https://web-human-resource-information-syst.vercel.app'
-      'https://hris.stackplustudio.com'
+      'https://web-human-resource-information-syst.vercel.app',
+      'https://hris.stackplustudio.com' // 👈 INI DOMAIN BARU LU, WAJIB MASUK!
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true, 
   });
 
-  // Wajib pakai process.env.PORT agar Railway bisa menembak port production secara dinamis
   const port = process.env.PORT || 3001;
   await app.listen(port); 
   console.log(`🚀 Application is running on port: ${port}`);
